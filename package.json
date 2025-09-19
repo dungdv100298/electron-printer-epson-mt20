@@ -1,0 +1,76 @@
+{
+  "name": "electron-epson-printer",
+  "version": "1.0.0",
+  "description": "EPSON Mobile Printer for Windows - Electron + ReactJS",
+  "main": "dist/main/main.js",
+  "homepage": "./",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
+    "dev:main": "tsc -p tsconfig.main.json && electron dist/main/main.js",
+    "dev:renderer": "react-scripts start",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:main": "tsc -p tsconfig.main.json",
+    "build:renderer": "react-scripts build",
+    "dist": "npm run build && electron-builder",
+    "pack": "electron-builder --dir",
+    "postinstall": "electron-builder install-app-deps",
+    "start": "npm run dev",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "electron": "^27.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "typescript": "^4.9.5",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "electron-builder": "^24.0.0",
+    "jimp": "^0.22.0",
+    "axios": "^1.6.0",
+    "styled-components": "^6.1.0",
+    "@types/styled-components": "^5.1.0",
+    "pdf-to-printer": "^5.6.0",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.0.0",
+    "wait-on": "^7.0.0",
+    "react-scripts": "5.0.1"
+  },
+  "build": {
+    "appId": "com.company.epson-printer",
+    "productName": "EPSON Printer App",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "dist/**/*",
+      "build/**/*",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "npmRebuild": false,
+    "nodeGypRebuild": false
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}
