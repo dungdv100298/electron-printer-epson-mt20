@@ -1,4 +1,3 @@
-import { ESCPOSCommands } from './escpos-commands';
 import { PrintOptions, PrintData, SalesReceiptData } from '../../shared/types/printer.types';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -9,10 +8,8 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 const execAsync = promisify(exec);
 
 export class PrinterService {
-  private escpos: ESCPOSCommands;
-
   constructor() {
-    this.escpos = new ESCPOSCommands();
+    // No dependencies needed for PDF generation
   }
 
   async printText(text: string, options: PrintOptions = {}): Promise<boolean> {
@@ -57,31 +54,31 @@ export class PrinterService {
 
   private async generateTextPDF(text: string, options: PrintOptions): Promise<string> {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const page = pdfDoc.addPage([384, 600]); // Thermal printer size (384px width for TM-P20)
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
     const fontSize = options.fontSize === 'large' ? 18 : 
                    options.fontSize === 'small' ? 12 : 14;
     
     const lines = text.split('\n');
-    let y = page.getHeight() - 50;
+    let y = page.getHeight() - 20;
     
     for (const line of lines) {
-      if (y < 50) {
+      if (y < 20) {
         // Add new page if needed
-        const newPage = pdfDoc.addPage([595.28, 841.89]);
-        y = newPage.getHeight() - 50;
+        const newPage = pdfDoc.addPage([384, 600]);
+        y = newPage.getHeight() - 20;
       }
       
       page.drawText(line, {
-        x: 50,
+        x: 10,
         y: y,
         size: fontSize,
         font: font,
         color: rgb(0, 0, 0)
       });
       
-      y -= fontSize + 5;
+      y -= fontSize + 3;
     }
     
     return await this.savePDF(pdfDoc);
@@ -89,7 +86,7 @@ export class PrinterService {
 
   private async generateImagePDF(imagePath: string, options: PrintOptions): Promise<string> {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const page = pdfDoc.addPage([384, 600]); // Thermal printer size (384px width for TM-P20)
     
     try {
       // Read and embed image
@@ -104,8 +101,8 @@ export class PrinterService {
         throw new Error('Unsupported image format');
       }
       
-      // Scale image to fit page
-      const { width, height } = image.scale(0.5);
+      // Scale image to fit thermal printer width (384px)
+      const { width, height } = image.scale(384 / image.width);
       const x = (page.getWidth() - width) / 2;
       const y = (page.getHeight() - height) / 2;
       
@@ -119,8 +116,8 @@ export class PrinterService {
       console.error('Error processing image:', error);
       // Fallback to text
       page.drawText('Error loading image', {
-        x: 50,
-        y: page.getHeight() - 50,
+        x: 10,
+        y: page.getHeight() - 20,
         size: 14,
         font: await pdfDoc.embedFont(StandardFonts.Helvetica),
         color: rgb(1, 0, 0)
@@ -132,10 +129,10 @@ export class PrinterService {
 
   private async generateMixedPDF(data: PrintData): Promise<string> {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const page = pdfDoc.addPage([384, 600]); // Thermal printer size (384px width for TM-P20)
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     
-    let y = page.getHeight() - 50;
+    let y = page.getHeight() - 20;
     
     // Add text if present
     if (data.text) {
@@ -144,20 +141,20 @@ export class PrinterService {
       
       const lines = data.text.split('\n');
       for (const line of lines) {
-        if (y < 50) {
-          const newPage = pdfDoc.addPage([595.28, 841.89]);
-          y = newPage.getHeight() - 50;
+        if (y < 20) {
+          const newPage = pdfDoc.addPage([384, 600]);
+          y = newPage.getHeight() - 20;
         }
         
         page.drawText(line, {
-          x: 50,
+          x: 10,
           y: y,
           size: fontSize,
           font: font,
           color: rgb(0, 0, 0)
         });
         
-        y -= fontSize + 5;
+        y -= fontSize + 3;
       }
     }
     
@@ -174,9 +171,9 @@ export class PrinterService {
         }
         
         if (image) {
-          const { width, height } = image.scale(0.5);
+          const { width, height } = image.scale(384 / image.width);
           const x = (page.getWidth() - width) / 2;
-          y = Math.max(y - height - 20, 50);
+          y = Math.max(y - height - 10, 20);
           
           page.drawImage(image, {
             x: x,
@@ -195,107 +192,107 @@ export class PrinterService {
 
   private async generateSalesReceiptPDF(receiptData: SalesReceiptData): Promise<string> {
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+    const page = pdfDoc.addPage([384, 600]); // Thermal printer size (384px width for TM-P20)
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     
-    let y = page.getHeight() - 50;
+    let y = page.getHeight() - 20;
     
     // Header
     page.drawText('納品書 兼 領収書', {
-      x: 50,
+      x: 10,
       y: y,
-      size: 20,
+      size: 16,
       font: boldFont,
       color: rgb(0, 0, 0)
     });
-    y -= 40;
+    y -= 25;
     
     // Receipt info
     page.drawText(`No: ${receiptData.header.receiptNo}`, {
-      x: 50,
+      x: 10,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 20;
+    y -= 15;
     
     page.drawText(`納品日: ${receiptData.header.date}`, {
-      x: 50,
+      x: 10,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 20;
+    y -= 15;
     
     page.drawText(`顧客コード: ${receiptData.header.customerCode}`, {
-      x: 50,
+      x: 10,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 20;
+    y -= 15;
     
     page.drawText(`顧客名: ${receiptData.header.customerName}`, {
-      x: 50,
+      x: 10,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 30;
+    y -= 20;
     
     // Items table header
-    page.drawText('商品コード', { x: 50, y: y, size: 10, font: boldFont, color: rgb(0, 0, 0) });
-    page.drawText('商品名', { x: 150, y: y, size: 10, font: boldFont, color: rgb(0, 0, 0) });
-    page.drawText('数量', { x: 350, y: y, size: 10, font: boldFont, color: rgb(0, 0, 0) });
-    page.drawText('単価', { x: 400, y: y, size: 10, font: boldFont, color: rgb(0, 0, 0) });
-    page.drawText('金額', { x: 500, y: y, size: 10, font: boldFont, color: rgb(0, 0, 0) });
-    y -= 20;
+    page.drawText('商品コード', { x: 10, y: y, size: 8, font: boldFont, color: rgb(0, 0, 0) });
+    page.drawText('商品名', { x: 80, y: y, size: 8, font: boldFont, color: rgb(0, 0, 0) });
+    page.drawText('数量', { x: 200, y: y, size: 8, font: boldFont, color: rgb(0, 0, 0) });
+    page.drawText('単価', { x: 240, y: y, size: 8, font: boldFont, color: rgb(0, 0, 0) });
+    page.drawText('金額', { x: 300, y: y, size: 8, font: boldFont, color: rgb(0, 0, 0) });
+    y -= 15;
     
     // Items
     for (const item of receiptData.items) {
-      if (y < 100) {
-        const newPage = pdfDoc.addPage([595.28, 841.89]);
-        y = newPage.getHeight() - 50;
+      if (y < 50) {
+        const newPage = pdfDoc.addPage([384, 600]);
+        y = newPage.getHeight() - 20;
       }
       
-      page.drawText(item.productCode, { x: 50, y: y, size: 10, font: font, color: rgb(0, 0, 0) });
-      page.drawText(item.productName, { x: 150, y: y, size: 10, font: font, color: rgb(0, 0, 0) });
-      page.drawText(item.quantity.toString(), { x: 350, y: y, size: 10, font: font, color: rgb(0, 0, 0) });
-      page.drawText(`¥${item.price.toLocaleString()}`, { x: 400, y: y, size: 10, font: font, color: rgb(0, 0, 0) });
-      page.drawText(`¥${item.total.toLocaleString()}`, { x: 500, y: y, size: 10, font: font, color: rgb(0, 0, 0) });
-      y -= 20;
+      page.drawText(item.productCode, { x: 10, y: y, size: 8, font: font, color: rgb(0, 0, 0) });
+      page.drawText(item.productName, { x: 80, y: y, size: 8, font: font, color: rgb(0, 0, 0) });
+      page.drawText(item.quantity.toString(), { x: 200, y: y, size: 8, font: font, color: rgb(0, 0, 0) });
+      page.drawText(`¥${item.price.toLocaleString()}`, { x: 240, y: y, size: 8, font: font, color: rgb(0, 0, 0) });
+      page.drawText(`¥${item.total.toLocaleString()}`, { x: 300, y: y, size: 8, font: font, color: rgb(0, 0, 0) });
+      y -= 15;
     }
     
-    y -= 20;
+    y -= 15;
     
     // Summary
     page.drawText(`小計: ¥${receiptData.summary.subtotal.toLocaleString()}`, {
-      x: 400,
+      x: 200,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 20;
+    y -= 15;
     
     page.drawText(`税額 (10%): ¥${receiptData.summary.tax.toLocaleString()}`, {
-      x: 400,
+      x: 200,
       y: y,
-      size: 12,
+      size: 10,
       font: font,
       color: rgb(0, 0, 0)
     });
-    y -= 20;
+    y -= 15;
     
     page.drawText(`合計: ¥${receiptData.summary.total.toLocaleString()}`, {
-      x: 400,
+      x: 200,
       y: y,
-      size: 16,
+      size: 12,
       font: boldFont,
       color: rgb(0, 0, 0)
     });
